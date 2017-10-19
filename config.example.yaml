@@ -1,0 +1,81 @@
+---
+# Prefix to trigger bot
+prefix: '!'
+
+# Contact person/user/email/whatever
+contact: Your name and/or email
+
+# Use alias for actions, i.e. !w London instead of !wikipedia London
+action_aliases:
+  w: wikipedia
+  wiki: wikipedia
+  nip: ninjas_in_pyjamas
+  temp: temperature
+  lt: latesttweet
+
+# Enable or disable greet on chanjoin
+greet_on_chanjoin: true
+
+# The bot will greet with one of the following words
+greetings:
+  - Tjenixen
+  - Hej
+  - Hallådär
+  - Hejsan
+  - Tjo
+
+# Enable or disable URL title limitation
+url_limit: true
+
+# If url title is limited, this is the whitelist
+url_whitelist:
+  - spotify
+  - youtube
+  - youtu
+  - imdb
+  - dn
+  - vk
+  - svd
+  - aftonbladet
+  - twitter
+
+repost:
+  enable: true
+  summary: true
+  link_file: ./links
+
+# Clarifi image recognition API. Create key at https://clarifai.com
+clarifi:
+  api_key: HIDDEN
+  api_url: https://api.clarifai.com/v2/models/HIDDEN/outputs
+
+# Ninjas in pyjamas CS:GO action - this is information for sportradar API
+# Register for API key @ https://api.sportradar.us
+nip:
+  api_key: HIDDEN
+  team_id: 'sr:competitor:220608'
+
+# Wikipedia action
+# No API key required
+wikipedia:
+  default_language: sv
+  max_length: 300
+
+# Temperature API
+# Register for API key @ https://api.openweathermap.org
+temperature:
+  api_key: HIDDEN
+
+# Twitter OAuth credentials
+twitter:
+  consumer_key: HIDDEN
+  consumer_secret: HIDDEN
+  access_token: HIDDEN
+  access_token_secret: HIDDEN
+
+# iMDB information via http://www.omdbapi.com
+# Must become a Patreon to obtain key to the API
+imdb:
+  api_key: HIDDEN
+
+# vim: set ts=2 sw=2 expandtab:

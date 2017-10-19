@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+
+use Bot::BasicBot::Pluggable;
+
+my $bot = Bot::BasicBot::Pluggable->new(
+    server      => 'irc.network.server',
+    port        => 6667,
+    channels    => [ '#channel' ],
+    nick        => 'Noll9Noll',
+    alt_nicks   => [ '090', 'NollNittio' ],
+    username    => 'nooneok',
+    name        => 'I have no name...',
+    ignore_list => [],
+    charset     => 'UTF-8',
+);
+
+$bot->load('Loader');
+$bot->load('Auth');
+
+$bot->run();
