@@ -188,7 +188,7 @@ sub is_url {
     my ( $self, $message ) = @_;
 
     my ( $url ) = $message =~ m|(https?://\S+)|;
-    return unless $url;
+    return if !$url;
 
     return $url;
 }
@@ -310,7 +310,7 @@ sub get_title {
     my $ua    = Mojo::UserAgent->new();
     my $title = $ua->max_redirects( 5 )->get( $url )->res->dom->at( 'title' )->text;
 
-    return unless $title;
+    return if !$title;
 
     if ( $title =~ /(?:(.+) by (.+) on Spotify|(.*), a song by (.*) on Spotify)/ ){
         my $name   = $1;
@@ -462,7 +462,7 @@ sub temperature {
     my $humidity = $result->{main}->{humidity};
     my $wind     = $result->{wind}->{speed};
 
-    unless ( $temp && $humidity && $wind ) {
+    if ( !$temp || !$humidity || !$wind ) {
         $self->tell( $message->{channel}, sprintf( 'Hittade inget väder för %s', $city ) );
         return;
     }
