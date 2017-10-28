@@ -512,12 +512,14 @@ sub image_recognition {
 
     my @keywords = ();
     foreach my $concept ( @{ $result->{outputs}->[0]->{data}->{concepts} } ) {
-        next if $concept->{value} < 0.991;
+        next if $concept->{value} < $self->get( 'clarifi' )->{min_match};
 
         push @keywords, $concept->{name};
     }
 
-    $self->tell( $message->{channel}, sprintf( 'Det här ser jag på bilden: %s', join( ', ', @keywords ) ) );
+    return if !@keywords;
+
+    $self->tell( $message->{channel}, sprintf( 'Jag är över %.2f procent säker på att detta finns i bilden: %s', $self->get( 'clarifi' )->{min_match} * 100, join( ', ', @keywords ) ) );
 
     return 1;
 }

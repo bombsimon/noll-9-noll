@@ -48,6 +48,7 @@ repost:
 clarifi:
   api_key: HIDDEN
   api_url: https://api.clarifai.com/v2/models/HIDDEN/outputs
+  min_match: 0.991
 
 # Ninjas in pyjamas CS:GO action - this is information for sportradar API
 # Register for API key @ https://api.sportradar.us
