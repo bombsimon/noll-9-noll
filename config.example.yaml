@@ -44,8 +44,8 @@ repost:
   summary: true
   link_file: ./links
 
-# Clarifi image recognition API. Create key at https://clarifai.com
-clarifi:
+# Clarifai image recognition API. Create key at https://clarifai.com
+clarifai:
   api_key: HIDDEN
   api_url: https://api.clarifai.com/v2/models/HIDDEN/outputs
   min_match: 0.991

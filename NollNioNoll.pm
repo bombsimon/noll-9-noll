@@ -503,8 +503,8 @@ sub image_recognition {
 
     my $ua = Mojo::UserAgent->new();
     my $result = $ua->post(
-        $self->get( 'clarifi' )->{api_url},
-        { Authorization => sprintf( 'Key %s', $self->get( 'clarifi' )->{api_key} ) },
+        $self->get( 'clarifai' )->{api_url},
+        { Authorization => sprintf( 'Key %s', $self->get( 'clarifai' )->{api_key} ) },
         json => { inputs => [ { data => { image => { url => $url } } } ] }
     )->res->json;
 
@@ -512,14 +512,14 @@ sub image_recognition {
 
     my @keywords = ();
     foreach my $concept ( @{ $result->{outputs}->[0]->{data}->{concepts} } ) {
-        next if $concept->{value} < $self->get( 'clarifi' )->{min_match};
+        next if $concept->{value} < $self->get( 'clarifai' )->{min_match};
 
         push @keywords, $concept->{name};
     }
 
     return if !@keywords;
 
-    $self->tell( $message->{channel}, sprintf( 'Jag är över %.2f procent säker på att detta finns i bilden: %s', $self->get( 'clarifi' )->{min_match} * 100, join( ', ', @keywords ) ) );
+    $self->tell( $message->{channel}, sprintf( 'Jag är över %.2f procent säker på att detta finns i bilden: %s', $self->get( 'clarifai' )->{min_match} * 100, join( ', ', @keywords ) ) );
 
     return 1;
 }
