@@ -30,7 +30,8 @@ By default this module is actually not loaded, however ```Load``` and ```Auth```
 * Get latest Tweet from a user
 * Get a random bible verse
 * Fetch URL titles
-* Fetch unique information for some URLs (Twitter, iMDB, Wikipedia, Spotify)
+* Fetch unique information for some URLs (Twitter, iMDB, Wikipedia, Spotify, Wikipedia)
 * Check URL reposts and statistics
 * Show NiPs upcomming CS:GO matches
+* Add Steam players to VAC watch and get PMed when they're being banned
 * Get temperature for your city

@@ -3,6 +3,7 @@ logs/
 *.sqlite
 config.yaml
 links
+vac_bans
 
 # Created by https://www.gitignore.io/api/vim,perl,linux
 

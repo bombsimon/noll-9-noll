@@ -16,6 +16,7 @@ use warnings;
 use strict;
 use utf8;
 
+use DateTime::Format::Strptime qw( strptime );
 use JSON;
 use Mojo::UserAgent;
 use Net::Twitter;
@@ -44,7 +45,13 @@ sub _module_config {
 
 =head1 METHODS
 
-Package methods
+Methods found in this pacakge. All methods are documented, even
+the internal once. This is to get a better overview of what the
+bot actually does.
+
+=head1 CORE
+
+Core methods overridden to fulful the L<Bot::BasicBot::Pluggable> interface
 
 =head2 init
 
@@ -55,7 +62,12 @@ Setup the bot
 sub init {
     my $self = shift;
 
+    # Always reload full store
+    $self->unset( $_ ) for $self->store_keys;
+
     $self->config( $self->_module_config );
+
+    $self->set( 'dow' => DateTime->now()->day_of_week );
 
     return 1;
 }
@@ -81,6 +93,36 @@ to trigger recurrent events.
 
 sub tick {
     my $self = shift;
+
+    my $tick_interval  = 5; # This method is called every 5 seconds
+    my $ticks_passed   = $self->get( 'ticks' ) // 0;
+    my $seconds_passed = $ticks_passed * $tick_interval;
+
+    # One minute
+    if ( $seconds_passed % 60 == 0 ) {
+    }
+    # Every five minutes
+    elsif ( $seconds_passed % 300 == 0 ) {
+    }
+    # Every 30 minutes
+    elsif ( $seconds_passed % 1800 == 0 ) {
+    }
+    # One hour
+    elsif ( $seconds_passed % 3600 == 0 ) {
+        $self->check_vac_watch();
+    }
+
+    # 720 ticks == 1 hour (720 * 5 = 3600 )
+    if ( $ticks_passed == 720 ) {
+        $self->set( 'ticks' ) = 0;
+    }
+
+    # New day
+    if ( $self->_day_changed ) {
+    }
+
+    $self->set( 'ticks' => ++$ticks_passed );
+    $self->set( 'dow'   => DateTime->now()->day_of_week ) if DateTime->now()->second > 30;
 
     return 1;
 }
@@ -108,7 +150,7 @@ sub told {
         }
     }
 
-    my $url       = $self->is_url( $message->{body} );
+    my $url       = $self->_is_url( $message->{body} );
     my $is_repost = $url ? $self->repost_check( $message ) : 0;
 
     if ( $url && !$is_repost ) {
@@ -124,7 +166,7 @@ sub told {
             my ( $language, $page ) = ( $1, $2 );
             $self->wikipedia( $message, $page, $language );
         }
-        elsif ( $url =~ m!\.(jpe?g|png|gif|tiff)! ) {
+        elsif ( $url =~ m!\.(jpe?g|png|gif|tiff)!i ) {
             $self->image_recognition( $message, $url );
         }
         else {
@@ -155,42 +197,56 @@ sub chanjoin {
     return 1;
 }
 
-=head2 help
+=head1 HELPERS
 
-Return the help text for the bot
+Helper methods for internal usage
 
-=cut
-
-sub help {
-    my ( $self, $message ) = @_;
-
-    my @commands_to_show = qw(
-        !wiki <text>
-        !nip
-        !temp <stad>
-        !bible
-        !lt <twitter-användare>
-    );
-
-    return sprintf(
-        'Jag är bara en bot skapad av %s! Utöver att hälsa och kolla länkar jag kan du testa något av följande: %s.',
-        $self->get( 'contact' ), join( ', ', @commands_to_show )
-    );
-}
-
-=head2 is_url
+=head2 _is_url
 
 Check if the body contains any URLs
 
 =cut
 
-sub is_url {
+sub _is_url {
     my ( $self, $message ) = @_;
 
     my ( $url ) = $message =~ m|(https?://\S+)|;
     return if !$url;
 
     return $url;
+}
+
+=head2 _user_online
+
+Check if a given user is online
+
+=cut
+
+sub _user_online {
+    my ( $self, $user ) = @_;
+
+    my @channels = $self->bot->channels;
+    foreach my $channel ( @channels ) {
+        my $channel_data = $self->bot->channel_data( $channel );
+
+        return 1 if $channel_data->{$user};
+    }
+
+    return;
+}
+
+=head2 _day_changed
+
+Check if the day has changed. We will set the day of week each tick
+if we're passed 30 seconds on the clock. This means we should get at least
+5 ticks before we recognize a new day!
+
+=cut
+
+sub _day_changed {
+    my $self = shift;
+
+    return $self->get( 'dow' ) != DateTime->now()->day_of_week;
 }
 
 =head2 _relative_time
@@ -230,9 +286,289 @@ sub _relative_time {
     return 'okänd tid';
 }
 
+=head2 _id_to_64
+
+Convert a SteamID to ID64 format
+
+=cut
+
+sub _id_to_64 {
+    my ( $self, $id ) = @_;
+
+    my $identifier = 76561197960265728;
+
+    my ( $auth, $steam_id ) = split( /:/, $id );
+
+    return $identifier + ( ( $steam_id * 2 ) + $auth );
+}
+
+=head2 _save_link
+
+Save a new link each time someone posts a link
+
+=cut
+
+sub _save_link {
+    my ( $self, $url, $user ) = @_;
+
+    my ( $domain ) = $url =~ m!^([^/]+)!;
+
+    open my $links_file, '>>', $self->get( 'repost' )->{link_file};
+    print $links_file sprintf( "%s %s %s %s\n", time, $user, $domain, $url );
+    close $links_file;
+
+    return 1;
+}
+
+=head2 _get_links
+
+Get all links and domain count posted
+
+=cut
+
+sub _get_links {
+    my $self = shift;
+
+    my %links = ();
+
+    open my $links_file, '<', $self->get( 'repost' )->{link_file};
+
+    while ( my $line = <$links_file> ) {
+        chomp $line;
+
+        my ( $time, $user, $domain, $link ) = split( /\s+/, $line );
+
+        push @{ $links{urls}->{ $link } }, {
+            time   => $time,
+            user   => $user,
+            domain => $domain
+        };
+
+        $links{domains}->{ $domain }++;
+    }
+
+    close $links_file;
+
+    return \%links;
+}
+
+=head2 _notify_users_vac
+
+Notify users when someone is banned
+
+=cut
+
+sub _notify_users_vac {
+    my ( $self, $to_notify ) = @_;
+
+    while ( my ( $user, $bans ) = each %$to_notify ) {
+        # Make sure the user is online, if not - don't mark player as banned yet
+        if ( !$self->_user_online( $user ) ) {
+            map { $_->{banned} = 0 } @$bans;
+            next;
+        }
+
+        my @ban_info = ();
+        foreach my $ban ( @$bans ) {
+            push @ban_info, sprintf( '%s (tillagd %s sedan)', $ban->{username}, $self->_relative_time( $ban->{added} ) ); 
+        }
+
+        $self->tell( $user, sprintf( 'Ny VAC ban! Följande spelare är nu bannad: %s', join( ', ', @ban_info ) ) );
+    }
+
+    return 1;
+}
+
+=head2 _get_valve_status
+
+Poll player profile and ban status from Valve
+
+=cut
+
+sub _get_valve_status {
+    my ( $self, $player_id ) = @_;
+
+    my $player_url = sprintf( $self->get( 'valve' )->{profile_url}, $self->get( 'valve' )->{api_key}, $player_id );
+    my $bans_url   = sprintf( $self->get( 'valve' )->{bans_url}, $self->get( 'valve' )->{api_key}, $player_id );
+
+    my $ua     = Mojo::UserAgent->new();
+    my $player = $ua->get( $player_url )->res->json->{response}->{players}->[0];
+    my $bans   = $ua->get( $bans_url )->res->json->{players}->[0];
+
+    return ( $player, $bans );
+}
+
+=head2 _update_vac_watch
+
+Add players to the banlist
+
+=cut
+
+sub _update_vac_watch {
+    my ( $self, $players, $reset ) = @_;
+
+    my $current_listing = $reset ? {}  : $self->_get_player_watch();
+    my $file_operand    = $reset ? '>' : '>>';
+
+    open my $file, $file_operand, $self->get( 'valve' )->{ban_file};
+    foreach my $user ( keys %$players ) {
+        foreach my $steam_id ( keys %{ $players->{$user} } ) {
+            # Don't add same player twice for a user
+            next if $current_listing->{$user}->{$steam_id};
+
+            my $player = $players->{$user}->{$steam_id};
+
+            print $file sprintf( "%s %d %d %s %s %s\n",
+                $user, $steam_id, $player->{added}, $player->{username}, $player->{banned}, $player->{days_since_ban}
+            );
+        }
+    }
+    close $file;
+
+    return 1;
+}
+
+=head2 _get_player_watch
+
+Get all watched players
+
+=cut
+
+sub _get_player_watch {
+    my $self = shift;
+
+    my %ban_watch = ();
+
+    open my $file, '<', $self->get( 'valve' )->{ban_file};
+    while ( my $line = <$file> ) {
+        chomp $line;
+
+        my ( $user, $id64, $player_added, $player_username, $player_banned, $player_days_since_ban ) = split( /\s+/, $line );
+
+        $ban_watch{$user}->{$id64} = {
+            added          => $player_added,
+            username       => $player_username,
+            banned         => $player_banned,
+            days_since_ban => $player_days_since_ban
+        };
+    }
+    close $file;
+
+    return \%ban_watch;
+}
+
 =head1 ACTIONS
 
 Different actions available via prefix and beloning methods
+
+=head2 help
+
+Return the help text for the bot
+
+=cut
+
+sub help {
+    my ( $self, $message ) = @_;
+
+    my @commands_to_show = (
+        '!wiki <text>',
+        '!nip',
+        '!temp <stad>',
+        '!bible',
+        '!lt <twitter-användare>',
+        '!vac <STEAM_0:X:XXXXXX>'
+    );
+
+    return sprintf(
+        'Jag är bara en bot skapad av %s! Utöver att hälsa och kolla länkar jag kan du testa något av följande: %s.',
+        $self->get( 'contact' ), join( ', ', @commands_to_show )
+    );
+}
+
+=head2 add_vac_watch
+
+Let a user post SteamIDs and I will watch those profile and
+notify the user if the player gets a ban!
+
+=cut
+
+sub add_vac_watch {
+    my ( $self, $message, @args ) = @_;
+
+    my ( @ids ) = $message->{body} =~ /STEAM_\d:((?:\d+):(?:\d+))/g;
+
+    my %players   = ();
+    my @usernames = ();
+    my $ua        = Mojo::UserAgent->new();
+
+    foreach my $id ( @ids ) {
+        my $id64 = $self->_id_to_64( $id );
+
+        my ( $player, $bans ) = $self->_get_valve_status( $id64 );
+        next if !$player;
+
+        $players{ $message->{who} }->{ $id64 } = {
+            username       => $player->{personaname},
+            banned         => $bans->{VACBanned},
+            days_since_ban => $bans->{DaysSinceLastBan},
+            added          => time
+        };
+
+        push @usernames, $player->{personaname};
+    }
+
+    $self->_update_vac_watch( \%players );
+
+    $self->tell(
+        $message->{channel}, sprintf(
+            'La till dessa spelare på watchlist: %s',
+            join( ', ', @usernames )
+        )
+    );
+
+    return 1;
+}
+
+=head2 check_vac_watch
+
+Check the current bans and if a new player has received a ban.
+
+=cut
+
+sub check_vac_watch {
+    my $self = shift;
+
+    my %to_notify   = ();
+    my $player_bans = $self->_get_player_watch();
+
+    foreach my $user ( keys %$player_bans ) {
+        foreach my $steam_id ( keys %{ $player_bans->{$user} } ) {
+            my $watching = $player_bans->{$user}->{$steam_id};
+
+            # Don't re-check banned players!
+            next if $watching->{banned} == 1;
+
+            my ( $player, $bans ) = $self->_get_valve_status( $steam_id );
+
+            if ( $player->{personaname} eq 'Rudie' ) {
+                $bans->{VACBanned} = 1;
+                $bans->{DaysSinceLastBan} = 3;
+            }
+
+            next if !$bans->{VACBanned};
+
+            $watching->{banned} = 1;
+            $watching->{days_since_ban} = $bans->{DaysSinceLastBan};
+
+            push @{ $to_notify{$user} }, $watching;
+        }
+    }
+
+    $self->_notify_users_vac( \%to_notify );
+    $self->_update_vac_watch( $player_bans, 1 );
+
+    return 1;
+}
 
 =head2 wikipeia
 
@@ -344,7 +680,10 @@ sub latesttweet {
 
 =head2 get_tweet
 
-Get the tweet content for a twitter link
+Get the tweet content for a twitter link or by username
+
+  $self->get_tweet( $message, id => 1234567890 );      # Get by id (found in URL)
+  $self->get_tweet( $message, user => 'GoogleFacts' ); # Get the latest tweet from GoogleFacts
 
 =cut
 
@@ -420,8 +759,8 @@ sub ninjas_in_pyjamas {
         my $team_two_country = $game->{competitors}->[1]->{country};
         my $time             = $game->{scheduled};
 
-        my ( $ss, $mm, $hh, $day, $month, $year, $zone ) = strptime( $time );
-        my $scheduled = sprintf( '%04d-%02d-%02d %02d:%02d', $year + 1900, $month, $day, $hh, $mm );
+        my $datetime = strptime( '%Y-%m-%dT%H:%M:%S%z', $time );
+        my $scheduled = sprintf( '%s %s', $datetime->ymd, $datetime->hms );
 
         push @schedule, sprintf(
             '%s (%s) vs. %s (%s) - %s (%s) @ %s',
@@ -567,56 +906,6 @@ sub repost_check {
     }
 
     return;
-}
-
-=head2 _save_link
-
-Save a new link each time someone posts a link
-
-=cut
-
-sub _save_link {
-    my ( $self, $url, $user ) = @_;
-
-    my ( $domain ) = $url =~ m!^([^/]+)!;
-
-    open my $links_file, '>>', $self->get( 'repost' )->{link_file};
-    print $links_file sprintf( "%s %s %s %s\n", time, $user, $domain, $url );
-    close $links_file;
-
-    return 1;
-}
-
-=head2 _get_links
-
-Get all links and domain count posted
-
-=cut
-
-sub _get_links {
-    my $self = shift;
-
-    my %links = ();
-
-    open my $links_file, '<', $self->get( 'repost' )->{link_file};
-
-    while ( my $line = <$links_file> ) {
-        chomp $line;
-
-        my ( $time, $user, $domain, $link ) = split( /\s+/, $line );
-
-        push @{ $links{urls}->{ $link } }, {
-            time   => $time,
-            user   => $user,
-            domain => $domain
-        };
-
-        $links{domains}->{ $domain }++;
-    }
-
-    close $links_file;
-
-    return \%links;
 }
 
 =head1 AUTHOR

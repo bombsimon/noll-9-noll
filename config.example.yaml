@@ -12,6 +12,8 @@ action_aliases:
   nip: ninjas_in_pyjamas
   temp: temperature
   lt: latesttweet
+  ban: add_vac_watch
+  vac: add_vac_watch
 
 # Enable or disable greet on chanjoin
 greet_on_chanjoin: true
@@ -44,11 +46,18 @@ repost:
   summary: true
   link_file: ./links
 
+# Valve API to tell when someone gets banned!
+valve:
+  api_key: HIDDEN
+  profile_url: http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=%s&steamids=%s
+  bans_url: http://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key=%s&steamids=%s
+  ban_file: ./vac_bans
+
 # Clarifai image recognition API. Create key at https://clarifai.com
 clarifai:
   api_key: HIDDEN
   api_url: https://api.clarifai.com/v2/models/HIDDEN/outputs
-  min_match: 0.991
+  min_match: 0.900
 
 # Ninjas in pyjamas CS:GO action - this is information for sportradar API
 # Register for API key @ https://api.sportradar.us
