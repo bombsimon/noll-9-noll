@@ -362,12 +362,6 @@ sub _notify_users_vac {
     my ( $self, $to_notify ) = @_;
 
     while ( my ( $user, $bans ) = each %$to_notify ) {
-        # Make sure the user is online, if not - don't mark player as banned yet
-        if ( !$self->_user_online( $user ) ) {
-            map { $_->{banned} = 0 } @$bans;
-            next;
-        }
-
         my @ban_info = ();
         foreach my $ban ( @$bans ) {
             push @ban_info, sprintf( '%s (tillagd %s sedan)', $ban->{username}, $self->_relative_time( $ban->{added} ) ); 
@@ -541,21 +535,19 @@ sub check_vac_watch {
     my %to_notify   = ();
     my $player_bans = $self->_get_player_watch();
 
-    foreach my $user ( keys %$player_bans ) {
-        foreach my $steam_id ( keys %{ $player_bans->{$user} } ) {
+    USER: foreach my $user ( keys %$player_bans ) {
+        PLAYER: foreach my $steam_id ( keys %{ $player_bans->{$user} } ) {
             my $watching = $player_bans->{$user}->{$steam_id};
 
             # Don't re-check banned players!
-            next if $watching->{banned} == 1;
+            next PLAYER if $watching->{banned} == 1;
+
+            # No need to check if the user watching is offline (cannot PM)
+            next USER if !$self->_user_online( $user );
 
             my ( $player, $bans ) = $self->_get_steam_status( $steam_id );
 
-            if ( $player->{personaname} eq 'Rudie' ) {
-                $bans->{VACBanned} = 1;
-                $bans->{DaysSinceLastBan} = 3;
-            }
-
-            next if !$bans->{VACBanned};
+            next PLAYER if !$bans->{VACBanned};
 
             $watching->{banned} = 1;
             $watching->{days_since_ban} = $bans->{DaysSinceLastBan};
