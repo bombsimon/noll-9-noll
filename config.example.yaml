@@ -16,38 +16,37 @@ action_aliases:
   vac: add_vac_watch
 
 # Enable or disable greet on chanjoin
-greet_on_chanjoin: true
+greeting:
+  enabled: true
+  greetings:
+    - Tjenixen
+    - Hej
+    - Hallådär
+    - Hejsan
+    - Tjo
 
-# The bot will greet with one of the following words
-greetings:
-  - Tjenixen
-  - Hej
-  - Hallådär
-  - Hejsan
-  - Tjo
+# Fetch URL titles, limit to a given whitelist
+url_title:
+  limit: true
+  whitelist:
+    - spotify
+    - youtube
+    - youtu
+    - imdb
+    - dn
+    - vk
+    - svd
+    - aftonbladet
+    - twitter
 
-# Enable or disable URL title limitation
-url_limit: true
-
-# If url title is limited, this is the whitelist
-url_whitelist:
-  - spotify
-  - youtube
-  - youtu
-  - imdb
-  - dn
-  - vk
-  - svd
-  - aftonbladet
-  - twitter
-
+# Check for reepost, summary for URL and the file to store links in
 repost:
   enable: true
   summary: true
   link_file: ./links
 
-# Valve API to tell when someone gets banned!
-valve:
+# Steam API to tell when someone gets banned!
+steam:
   api_key: HIDDEN
   profile_url: http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=%s&steamids=%s
   bans_url: http://api.steampowered.com/ISteamUser/GetPlayerBans/v1/?key=%s&steamids=%s
@@ -63,6 +62,7 @@ clarifai:
 # Register for API key @ https://api.sportradar.us
 nip:
   api_key: HIDDEN
+  api_url: https://api.sportradar.us/csgo-t1/sv/teams/%s/schedule.json?api_key=%s
   team_id: 'sr:competitor:220608'
 
 # Wikipedia action
@@ -70,11 +70,13 @@ nip:
 wikipedia:
   default_language: sv
   max_length: 300
+  api_url: https://%s.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&exintro=&titles=%s
 
 # Temperature API
 # Register for API key @ https://api.openweathermap.org
 temperature:
   api_key: HIDDEN
+  api_url: https://api.openweathermap.org/data/2.5/weather?q=%s&units=metric&mode=json&APPID=%s
 
 # Twitter OAuth credentials
 twitter:
@@ -87,5 +89,10 @@ twitter:
 # Must become a Patreon to obtain key to the API
 imdb:
   api_key: HIDDEN
+  api_url: http://www.omdbapi.com/?apikey=%s&i=%s
+
+# Bible verses - free API
+bible:
+  api_url: http://labs.bible.org/api/?passage=random&type=json
 
 # vim: set ts=2 sw=2 expandtab:

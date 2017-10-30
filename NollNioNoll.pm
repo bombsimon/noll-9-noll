@@ -187,9 +187,9 @@ sub chanjoin {
     my ( $self, $message ) = @_;
 
     return if $message->{who} eq $self->bot->nick;
-    return if !$self->get( 'greet_on_chanjoin' );
+    return if !$self->get( 'greeting' )->{enabled};
 
-    my @hello_phrases = @{ $self->get( 'greetings' ) };
+    my @hello_phrases = @{ $self->get( 'greeting' )->{greetings} };
     my $phrase        = $hello_phrases[ rand @hello_phrases ];
 
     $self->tell( $message->{channel}, sprintf( "%s %s! :)", $phrase, $message->{who} ) );
@@ -379,17 +379,17 @@ sub _notify_users_vac {
     return 1;
 }
 
-=head2 _get_valve_status
+=head2 _get_steam_status
 
-Poll player profile and ban status from Valve
+Poll player profile and ban status from Steam
 
 =cut
 
-sub _get_valve_status {
+sub _get_steam_status {
     my ( $self, $player_id ) = @_;
 
-    my $player_url = sprintf( $self->get( 'valve' )->{profile_url}, $self->get( 'valve' )->{api_key}, $player_id );
-    my $bans_url   = sprintf( $self->get( 'valve' )->{bans_url}, $self->get( 'valve' )->{api_key}, $player_id );
+    my $player_url = sprintf( $self->get( 'steam' )->{profile_url}, $self->get( 'steam' )->{api_key}, $player_id );
+    my $bans_url   = sprintf( $self->get( 'steam' )->{bans_url}, $self->get( 'steam' )->{api_key}, $player_id );
 
     my $ua     = Mojo::UserAgent->new();
     my $player = $ua->get( $player_url )->res->json->{response}->{players}->[0];
@@ -410,7 +410,7 @@ sub _update_vac_watch {
     my $current_listing = $reset ? {}  : $self->_get_player_watch();
     my $file_operand    = $reset ? '>' : '>>';
 
-    open my $file, $file_operand, $self->get( 'valve' )->{ban_file};
+    open my $file, $file_operand, $self->get( 'steam' )->{ban_file};
     foreach my $user ( keys %$players ) {
         foreach my $steam_id ( keys %{ $players->{$user} } ) {
             # Don't add same player twice for a user
@@ -439,7 +439,7 @@ sub _get_player_watch {
 
     my %ban_watch = ();
 
-    open my $file, '<', $self->get( 'valve' )->{ban_file};
+    open my $file, '<', $self->get( 'steam' )->{ban_file};
     while ( my $line = <$file> ) {
         chomp $line;
 
@@ -504,7 +504,7 @@ sub add_vac_watch {
     foreach my $id ( @ids ) {
         my $id64 = $self->_id_to_64( $id );
 
-        my ( $player, $bans ) = $self->_get_valve_status( $id64 );
+        my ( $player, $bans ) = $self->_get_steam_status( $id64 );
         next if !$player;
 
         $players{ $message->{who} }->{ $id64 } = {
@@ -548,7 +548,7 @@ sub check_vac_watch {
             # Don't re-check banned players!
             next if $watching->{banned} == 1;
 
-            my ( $player, $bans ) = $self->_get_valve_status( $steam_id );
+            my ( $player, $bans ) = $self->_get_steam_status( $steam_id );
 
             if ( $player->{personaname} eq 'Rudie' ) {
                 $bans->{VACBanned} = 1;
@@ -584,7 +584,7 @@ sub wikipedia {
 
     my $language = $args[-1] =~ /^[a-z]{2}$/ ? pop @args : $self->get( 'wikipedia' )->{default_language};
     my $subject  = join( '_', @args );
-    my $url      = sprintf( 'https://%s.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&exintro=&titles=%s', $language, $subject );
+    my $url      = sprintf( $self->get( 'wikipedia' )->{api_url}, $language, $subject );
     my $ua       = Mojo::UserAgent->new();
     my $result   = $ua->get( $url )->res->json;
 
@@ -636,8 +636,8 @@ Return the title for a web page
 sub get_title {
     my ( $self, $message, $url ) = @_;
 
-    if ( $self->get( 'url_limit' ) ) {
-        my $allowed_urls = join( '|', @{ $self->get( 'url_whitelist' ) } );
+    if ( $self->get( 'url_title' )->{limit} ) {
+        my $allowed_urls = join( '|', @{ $self->get( 'url_title' )->{whitelist} } );
         my $allowed_re   = qr{https?://(\w+\.?)*\.?($allowed_urls)};
 
         return if $url !~ $allowed_re;
@@ -648,9 +648,9 @@ sub get_title {
 
     return if !$title;
 
-    if ( $title =~ /(?:(.+) by (.+) on Spotify|(.*), a song by (.*) on Spotify)/ ){
-        my $name   = $1;
-        my $artist = $2;
+    if ( $title =~ /(?:(.+) (?:(?!song).)* by (.+) on Spotify|(.+), a song by (.+) on Spotify)/ ){
+        my $name   = $1 // $3;
+        my $artist = $2 // $4;
 
         my @url_parts      = split( /\//, $url );
         my ( $type, $uri ) = ( $url_parts[-2], $url_parts[-1] );
@@ -723,7 +723,7 @@ Get movie information from IMDb links
 sub get_imdb {
     my ( $self, $message, $movie_id ) = @_;
 
-    my $url    = sprintf( 'http://www.omdbapi.com/?apikey=%s&i=%s', $self->get( 'imdb' )->{api_key}, $movie_id );
+    my $url    = sprintf( $self->get( 'imdb' )->{api_url}, $self->get( 'imdb' )->{api_key}, $movie_id );
     my $ua     = Mojo::UserAgent->new();
     my $result = $ua->get( $url )->res->json;
 
@@ -745,7 +745,7 @@ Get schedule for NiP CS:GO team
 sub ninjas_in_pyjamas {
     my ( $self, $message ) = @_;
 
-    my $url    = sprintf( 'https://api.sportradar.us/csgo-t1/sv/teams/%s/schedule.json?api_key=%s', $self->get( 'nip' )->{team_id}, $self->get( 'nip' )->{api_key} );
+    my $url    = sprintf( $self->get( 'nip' )->{api_url}, $self->get( 'nip' )->{team_id}, $self->get( 'nip' )->{api_key} );
     my $ua     = Mojo::UserAgent->new();
     my $result = $ua->get( $url )->res->json;
 
@@ -794,7 +794,7 @@ sub temperature {
 
     my $city = join( ' ', @args );
 
-    my $url      = sprintf( 'https://api.openweathermap.org/data/2.5/weather?q=%s&units=metric&mode=json&APPID=%s', $city, $self->get( 'temperature' )->{api_key} );
+    my $url      = sprintf( $self->get( 'temperature' )->{api_url}, $city, $self->get( 'temperature' )->{api_key} );
     my $ua       = Mojo::UserAgent->new();
     my $result   = $ua->get( $url )->res->json;
     my $temp     = $result->{main}->{temp};
@@ -820,9 +820,8 @@ Bible will print a random verse from the bible
 sub bible {
     my ( $self, $message ) = @_;
 
-    my $url = "http://labs.bible.org/api/?passage=random&type=json";
     my $ua  = Mojo::UserAgent->new();
-    my $result = $ua->get( $url )->res->json->[0];
+    my $result = $ua->get( $self->get( 'bible' )->{api_url} )->res->json->[0];
 
     my $verse = sprintf( "%s %d:%d: %s", $result->{bookname}, $result->{chapter}, $result->{verse}, $result->{text} );
 
