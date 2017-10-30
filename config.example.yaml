@@ -32,14 +32,12 @@ url_title:
     - spotify
     - youtube
     - youtu
-    - imdb
     - dn
     - vk
     - svd
     - aftonbladet
-    - twitter
 
-# Check for reepost, summary for URL and the file to store links in
+# Check for repost, summary for URL and the file to store links in
 repost:
   enable: true
   summary: true
@@ -85,7 +83,7 @@ twitter:
   access_token: HIDDEN
   access_token_secret: HIDDEN
 
-# iMDB information via http://www.omdbapi.com
+# IMDb information via http://www.omdbapi.com
 # Must become a Patreon to obtain key to the API
 imdb:
   api_key: HIDDEN

@@ -9,7 +9,7 @@ When I started to learn about perl I used this base class to quickly get up and 
 I cannot really see how anyone would like to use this, however if you just clone this repository and modify it to your own bot, all you need to do is include NollNioNoll.pm in your ```PERL5LIB``` and start the executable file.
 
 ```
-090_CONFIG=./config PERL5LIB=. perl noll9noll
+090_CONFIG=/path/to/config.yaml PERL5LIB=/path/to/module perl noll9noll
 ```
 
 By default this module is actually not loaded, however ```Load``` and ```Auth``` is. To load this module, authenticate yourself and load it. For more information see documentation for ```Bot::BasicBot::Pluggable::Module```
@@ -30,7 +30,7 @@ By default this module is actually not loaded, however ```Load``` and ```Auth```
 * Get latest Tweet from a user
 * Get a random bible verse
 * Fetch URL titles
-* Fetch unique information for some URLs (Twitter, iMDB, Wikipedia, Spotify, Wikipedia)
+* Fetch unique information for some URLs (Twitter, iMDB, Wikipedia, Spotify)
 * Check URL reposts and statistics
 * Show NiPs upcomming CS:GO matches
 * Add Steam players to VAC watch and get PMed when they're being banned
