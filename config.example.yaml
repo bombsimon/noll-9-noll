@@ -68,7 +68,7 @@ nip:
 wikipedia:
   default_language: sv
   max_length: 300
-  api_url: https://%s.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&exintro=&titles=%s
+  api_url: https://%s.wikipedia.org/w/api.php?format=json&action=query&prop=extracts|links|pageprops&ppprop=disambiguation&plnamespace=0&exlimit=1&exsentences=1&explaintext=1&exintro=1&redirects=1&titles=%s
 
 # Temperature API
 # Register for API key @ https://api.openweathermap.org

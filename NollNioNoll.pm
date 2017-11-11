@@ -580,41 +580,39 @@ sub wikipedia {
     my $ua       = Mojo::UserAgent->new();
     my $result   = $ua->get( $url )->res->json;
 
-    my $html = '';
-    foreach my $id ( keys %{ $result->{'query'}->{'pages'} } ) {
-        last if $id < 1;
+    my ( $extract, $title, $source, $disambiguous, @links );
+    foreach my $id ( keys %{ $result->{query}->{pages} } ) {
+        my $page = $result->{query}->{pages}->{$id};
 
-        my $code = $result->{'query'}->{'pages'}->{$id}->{'extract'};
-        last if !$code;
+        last if exists $page->{missing};
 
-        $html = "<div>" . $code . "</div>";
+        $extract      = $page->{extract} =~ s/\n|\r/ /gr;
+        $title        = $page->{title};
+        $disambiguous = exists $page->{pageprops}->{disambiguation};
+
+        if ( $disambiguous ) {
+            @links = map { $_->{title} } @{ $page->{links} };
+        }
     }
 
-    if ( !$html ) {
+    if ( !$extract ) {
         $self->tell( $message->{channel}, sprintf( "Hittade inget om %s", join( ' ', map { lc $_ } @args ) ) );
 
         return;
     }
 
-    my $dom          = Mojo::DOM->new( $html );
-    my $limit        = $self->get( 'wikipedia' )->{max_length};
-    my $full_text    = $dom->at( 'div' )->all_text();
-    $full_text       =~ s|\n| |g;
-
-    my $text_content = substr( $full_text, 0, $limit );
-    $text_content   .= "[...]" if length( $full_text ) > $limit;
-
-    # Remove last sentence if text is trimmed
-    my ( $short_text, $other_text ) = $text_content =~ /^([^\.]+\. )([^\.]+\.? )?/;
-
-    if ( !$short_text && !$other_text ) {
-        $self->tell( $message->{channel}, "Kunde inte hämta sidans innehåll..." );
-        return;
+    if ( $result->{query}->{redirects} ) {
+        $source =  $result->{query}->{redirects}->[0]->{from};
     }
 
-    my $ingress = $short_text =~ /^(För andra|For other)/ ? $other_text : $short_text;
-
-    $self->tell( $message->{channel}, $ingress );
+    $self->tell(
+        $message->{channel},
+        sprintf( '%s %s %s',
+            $extract,
+            $source       ? sprintf( '(Från artikeln "%s", omdirigerad från "%s")', $title, $source ) : '',
+            $disambiguous ? join( ', ', @links ) : ''
+        )
+    );
 
     return 1;
 }
