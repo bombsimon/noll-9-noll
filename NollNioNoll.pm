@@ -143,7 +143,7 @@ sub told {
         my ( $action, $args ) = ( $1, $2 );
         my @args = split( /\s+/, $args // '' );
 
-        my $method = $self->get( 'action_aliases' )->{ $action } // $action;
+        my $method = lc ( $self->get( 'action_aliases' )->{ $action } // $action );
 
         if ( $self->can( $method ) ) {
             return $self->$method( $message, @args );
@@ -451,6 +451,50 @@ sub _get_player_watch {
     return \%ban_watch;
 }
 
+=head2 _imdb_omdb
+
+Get IMDb info with OMDB API
+
+=cut
+
+sub _imdb_omdb {
+    my ( $self, $movie_id ) = @_;
+
+    my $url    = sprintf( $self->get( 'imdb' )->{movie_db}, $self->get( 'imdb' )->{api_key}, $movie_id );
+    my $ua     = Mojo::UserAgent->new();
+    my $result = $ua->get( $url )->res->json;
+
+    return if $result->{Response} ne 'True';
+
+    return {
+        title => $result->{Title},
+        year  => $result->{Year},
+        score => $result->{imdbRating}
+    }
+}
+
+=head2 _imdb_movie_db
+
+Get IMDb info with movie db API
+
+=cut
+
+sub _imdb_movie_db {
+    my ( $self, $movie_id ) = @_;
+
+    my $url    = sprintf( $self->get( 'imdb' )->{movie_db}->{api_url}, $movie_id );
+    my $ua     = Mojo::UserAgent->new();
+    my $result = $ua->get( $url )->res->json;
+
+    return if $result->{error};
+
+    return {
+        title => $result->{data}->{name},
+        year  => $result->{data}->{year},
+        score => $result->{data}->{rating}
+    }
+}
+
 =head1 ACTIONS
 
 Different actions available via prefix and beloning methods
@@ -636,9 +680,10 @@ sub get_title {
     my $ua    = Mojo::UserAgent->new();
     my $title = $ua->max_redirects( 5 )->get( $url )->res->dom->at( 'title' )->text;
 
+    $title =~ s/^\s+|\s+$|\r|\n//g;
     return if !$title;
 
-    if ( $title =~ /(?:(.+) (?:(?!song).)* by (.+) on Spotify|(.+), a song by (.+) on Spotify)/ ){
+    if ( $title =~ /(?:(.+) (?:(?!song).)*by (.+) on Spotify|(.+), a song by (.+) on Spotify)/ ){
         my $name   = $1 // $3;
         my $artist = $2 // $4;
 
@@ -713,13 +758,9 @@ Get movie information from IMDb links
 sub get_imdb {
     my ( $self, $message, $movie_id ) = @_;
 
-    my $url    = sprintf( $self->get( 'imdb' )->{api_url}, $self->get( 'imdb' )->{api_key}, $movie_id );
-    my $ua     = Mojo::UserAgent->new();
-    my $result = $ua->get( $url )->res->json;
-
-    return if $result->{Response} ne 'True';
-
-    my $info   = sprintf('%s (%s). Metascore: %s, IMDb rating: %s', $result->{Title}, $result->{Year}, $result->{Metascore}, $result->{imdbRating});
+    my $func   = sprintf( '_imdb_%s', $self->get( 'imdb' )->{source} );
+    my $result = $self->$func( $movie_id );
+    my $info   = sprintf('%s (%s). IMDb rating: %s', $result->{title}, $result->{year}, $result->{score});
 
     $self->tell( $message->{channel}, $info );
 
@@ -782,21 +823,30 @@ Get the temperature for desired city
 sub temperature {
     my ( $self, $message, @args ) = @_;
 
-    my $city = join( ' ', @args );
+    my $city        = join( ' ', @args );
+    my $search_word = lc $city;
+    $search_word    =~ s/å|ä/a/g;
+    $search_word    =~ s/ö/o/g;
+    $search_word    =~ s/ü/u/g;
 
-    my $url      = sprintf( $self->get( 'temperature' )->{api_url}, $city, $self->get( 'temperature' )->{api_key} );
+    my $url      = sprintf( $self->get( 'temperature' )->{api_url}, $search_word, $self->get( 'temperature' )->{api_key} );
     my $ua       = Mojo::UserAgent->new();
     my $result   = $ua->get( $url )->res->json;
     my $temp     = $result->{main}->{temp};
     my $humidity = $result->{main}->{humidity};
     my $wind     = $result->{wind}->{speed};
 
-    if ( !$temp || !$humidity || !$wind ) {
+    if ( !defined $temp || !defined $humidity || !defined $wind ) {
+        if ( defined $temp ) {
+            $self->tell( $message->{channel}, sprintf( '%.2f grader i %s', $temp, $city ) );
+            return 1;
+        }
+
         $self->tell( $message->{channel}, sprintf( 'Hittade inget väder för %s', $city ) );
         return;
     }
 
-    $self->tell( $message->{channel}, sprintf( '%.2f grader, %d%% luftfuktughet och %.1f m/s vind i %s', $temp, $humidity, $wind, $city ) );
+    $self->tell( $message->{channel}, sprintf( '%.2f grader, %d%% luftfuktighet och %.1f m/s vind i %s', $temp, $humidity, $wind, $city ) );
 
     return 1;
 }
@@ -847,7 +897,7 @@ sub image_recognition {
 
     return if !@keywords;
 
-    $self->tell( $message->{channel}, sprintf( 'Jag är över %.2f procent säker på att detta finns i bilden: %s', $self->get( 'clarifai' )->{min_match} * 100, join( ', ', @keywords ) ) );
+    $self->tell( $message->{channel}, sprintf( 'Jag är helt jävla säker (a.k.a. killgissar) att detta finns i bilden: %s', join( ', ', @keywords ) ) );
 
     return 1;
 }

@@ -85,9 +85,14 @@ twitter:
 
 # IMDb information via http://www.omdbapi.com
 # Must become a Patreon to obtain key to the API
+# Alternative API can be used (https://github.com/theapache64/movie_db)
 imdb:
-  api_key: HIDDEN
-  api_url: http://www.omdbapi.com/?apikey=%s&i=%s
+  source: movie_db
+  movie_db:
+    api_url: http://18.220.163.253:8080/movie_db/search?keyword=%s
+  omdbapi:
+    api_key: HIDDEN
+    api_url: http://www.omdbapi.com/?apikey=%s&i=%s
 
 # Bible verses - free API
 bible:
