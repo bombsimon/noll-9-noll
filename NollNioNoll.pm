@@ -744,7 +744,9 @@ sub get_tweet {
 
     return if !$result;
 
-    $self->tell( $message->{channel}, sprintf( '%s %s: %s', $result->user->screen_name, $result->relative_created_at, $result->text ) );
+    my $tweet = $result->text =~ s/\n|\r//gr;
+
+    $self->tell( $message->{channel}, sprintf( '%s %s: %s', $result->user->screen_name, $result->relative_created_at, $tweet ) );
 
     return 1;
 }
