@@ -762,6 +762,8 @@ sub get_imdb {
     my $result = $self->$func( $movie_id );
     my $info   = sprintf('%s (%s). IMDb rating: %s', $result->{title}, $result->{year}, $result->{score});
 
+    return if !$result;
+
     $self->tell( $message->{channel}, $info );
 
     return 1;
