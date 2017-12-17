@@ -52,6 +52,7 @@ steam:
 
 # Clarifai image recognition API. Create key at https://clarifai.com
 clarifai:
+  enable: true
   api_key: HIDDEN
   api_url: https://api.clarifai.com/v2/models/HIDDEN/outputs
   min_match: 0.900

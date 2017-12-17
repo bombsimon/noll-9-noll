@@ -879,6 +879,8 @@ Try to recognize what's in the image
 sub image_recognition {
     my ( $self, $message, $url ) = @_;
 
+    return if !$self->get( 'clarifai' )->{enable};
+
     my $ua = Mojo::UserAgent->new();
     my $result = $ua->post(
         $self->get( 'clarifai' )->{api_url},
