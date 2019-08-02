@@ -1,3 +1,4 @@
+*.deep
 noll9noll
 logs/
 *.sqlite
