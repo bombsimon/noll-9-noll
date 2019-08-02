@@ -6,7 +6,8 @@ Yet another perl bot with some examples
 
 =head1 DESCRIPTION
 
-You will need to run a process loading this module. See L<Bot::BasicBot::Pluggable>
+You will need to run a process loading this module. See
+L<Bot::BasicBot::Pluggable>
 
 =cut
 
@@ -29,7 +30,7 @@ sub _module_config {
 
     my $file = $ENV{'090_CONFIG'} // './config.yaml';
 
-    if ( ! -e $file ) {
+    if ( !-e $file ) {
         warn 'Could not load any configuration';
         return {};
     }
@@ -45,11 +46,9 @@ sub _module_config {
 
 =head1 METHODS
 
-Methods found in this pacakge. All methods are documented, even
-the internal once. This is to get a better overview of what the
-bot actually does.
-
-=head1 CORE
+Methods found in this pacakge. All methods are documented, even the internal
+once. This is to get a better overview of what the bot actually does. =head1
+CORE
 
 Core methods overridden to fulful the L<Bot::BasicBot::Pluggable> interface
 
@@ -86,27 +85,30 @@ sub tell {
 
 =head2 tick
 
-A tick is called every five seconds. This method is used
-to trigger recurrent events.
+A tick is called every five seconds. This method is used to trigger recurrent
+events.
 
 =cut
 
 sub tick {
     my $self = shift;
 
-    my $tick_interval  = 5; # This method is called every 5 seconds
+    my $tick_interval  = 5;    # This method is called every 5 seconds
     my $ticks_passed   = $self->get( 'ticks' ) // 0;
     my $seconds_passed = $ticks_passed * $tick_interval;
 
     # One minute
     if ( $seconds_passed % 60 == 0 ) {
     }
+
     # Every five minutes
     elsif ( $seconds_passed % 300 == 0 ) {
     }
+
     # Every 30 minutes
     elsif ( $seconds_passed % 1800 == 0 ) {
     }
+
     # One hour
     elsif ( $seconds_passed % 3600 == 0 ) {
         $self->check_vac_watch();
@@ -122,15 +124,16 @@ sub tick {
     }
 
     $self->set( 'ticks' => ++$ticks_passed );
-    $self->set( 'dow'   => DateTime->now()->day_of_week ) if DateTime->now()->second > 30;
+    $self->set( 'dow'   => DateTime->now()->day_of_week )
+      if DateTime->now()->second > 30;
 
     return 1;
 }
 
 =head2 told
 
-Told is triggered on every priority 2 message. That is the
-most common such as when someone is typing in the chat.
+Told is triggered on every priority 2 message. That is the most common such as
+when someone is typing in the chat.
 
 =cut
 
@@ -139,11 +142,11 @@ sub told {
 
     my $prefix = $self->get( 'prefix' );
 
-    if ( $message->{body} =~/^\Q$prefix\E(\w+)\s?(.+)?$/ ) {
+    if ( $message->{body} =~ /^\Q$prefix\E(\w+)\s?(.+)?$/ ) {
         my ( $action, $args ) = ( $1, $2 );
         my @args = split( /\s+/, $args // '' );
 
-        my $method = lc ( $self->get( 'action_aliases' )->{ $action } // $action );
+        my $method = lc( $self->get( 'action_aliases' )->{$action} // $action );
 
         if ( $self->can( $method ) ) {
             return $self->$method( $message, @args );
@@ -237,9 +240,9 @@ sub _user_online {
 
 =head2 _day_changed
 
-Check if the day has changed. We will set the day of week each tick
-if we're passed 30 seconds on the clock. This means we should get at least
-5 ticks before we recognize a new day!
+Check if the day has changed. We will set the day of week each tick if we're
+passed 30 seconds on the clock. This means we should get at least 5 ticks before
+we recognize a new day!
 
 =cut
 
@@ -338,13 +341,14 @@ sub _get_links {
 
         my ( $time, $user, $domain, $link ) = split( /\s+/, $line );
 
-        push @{ $links{urls}->{ $link } }, {
+        push @{ $links{urls}->{$link} },
+          {
             time   => $time,
             user   => $user,
             domain => $domain
-        };
+          };
 
-        $links{domains}->{ $domain }++;
+        $links{domains}->{$domain}++;
     }
 
     close $links_file;
@@ -364,10 +368,12 @@ sub _notify_users_vac {
     while ( my ( $user, $bans ) = each %$to_notify ) {
         my @ban_info = ();
         foreach my $ban ( @$bans ) {
-            push @ban_info, sprintf( '%s (tillagd %s sedan)', $ban->{username}, $self->_relative_time( $ban->{added} ) ); 
+            push @ban_info,
+              sprintf( '%s (tillagd %s sedan)', $ban->{username}, $self->_relative_time( $ban->{added} ) );
         }
 
-        $self->tell( $user, sprintf( 'Ny VAC ban! Följande spelare är nu bannad: %s', join( ', ', @ban_info ) ) );
+        $self->tell( $user,
+            sprintf( 'Ny VAC ban! Följande spelare är nu bannad: %s', join( ', ', @ban_info ) ) );
     }
 
     return 1;
@@ -382,8 +388,9 @@ Poll player profile and ban status from Steam
 sub _get_steam_status {
     my ( $self, $player_id ) = @_;
 
-    my $player_url = sprintf( $self->get( 'steam' )->{profile_url}, $self->get( 'steam' )->{api_key}, $player_id );
-    my $bans_url   = sprintf( $self->get( 'steam' )->{bans_url}, $self->get( 'steam' )->{api_key}, $player_id );
+    my $player_url
+      = sprintf( $self->get( 'steam' )->{profile_url}, $self->get( 'steam' )->{api_key}, $player_id );
+    my $bans_url = sprintf( $self->get( 'steam' )->{bans_url}, $self->get( 'steam' )->{api_key}, $player_id );
 
     my $ua     = Mojo::UserAgent->new();
     my $player = $ua->get( $player_url )->res->json->{response}->{players}->[0];
@@ -407,14 +414,15 @@ sub _update_vac_watch {
     open my $file, $file_operand, $self->get( 'steam' )->{ban_file};
     foreach my $user ( keys %$players ) {
         foreach my $steam_id ( keys %{ $players->{$user} } ) {
+
             # Don't add same player twice for a user
             next if $current_listing->{$user}->{$steam_id};
 
             my $player = $players->{$user}->{$steam_id};
 
             print $file sprintf( "%s %d %d %s %s %s\n",
-                $user, $steam_id, $player->{added}, $player->{username}, $player->{banned}, $player->{days_since_ban}
-            );
+                $user, $steam_id, $player->{added}, $player->{username}, $player->{banned},
+                $player->{days_since_ban} );
         }
     }
     close $file;
@@ -437,7 +445,8 @@ sub _get_player_watch {
     while ( my $line = <$file> ) {
         chomp $line;
 
-        my ( $user, $id64, $player_added, $player_username, $player_banned, $player_days_since_ban ) = split( /\s+/, $line );
+        my ( $user, $id64, $player_added, $player_username, $player_banned, $player_days_since_ban )
+          = split( /\s+/, $line );
 
         $ban_watch{$user}->{$id64} = {
             added          => $player_added,
@@ -460,17 +469,20 @@ Get IMDb info with OMDB API
 sub _imdb_omdb {
     my ( $self, $movie_id ) = @_;
 
-    my $url    = sprintf( $self->get( 'imdb' )->{movie_db}, $self->get( 'imdb' )->{api_key}, $movie_id );
+    my $url = sprintf( $self->get( 'imdb' )->{omdbapi}->{api_url},
+        $self->get( 'imdb' )->{omdbapi}->{api_key}, $movie_id );
     my $ua     = Mojo::UserAgent->new();
     my $result = $ua->get( $url )->res->json;
 
+    return if !$result;
+    return if !$result->{Response};
     return if $result->{Response} ne 'True';
 
     return {
         title => $result->{Title},
         year  => $result->{Year},
         score => $result->{imdbRating}
-    }
+    };
 }
 
 =head2 _imdb_movie_db
@@ -492,7 +504,7 @@ sub _imdb_movie_db {
         title => $result->{data}->{name},
         year  => $result->{data}->{year},
         score => $result->{data}->{rating}
-    }
+    };
 }
 
 =head1 ACTIONS
@@ -518,15 +530,16 @@ sub help {
     );
 
     return sprintf(
-        'Jag är bara en bot skapad av %s! Utöver att hälsa och kolla länkar jag kan du testa något av följande: %s.',
-        $self->get( 'contact' ), join( ', ', @commands_to_show )
+'Jag är bara en bot skapad av %s! Utöver att hälsa och kolla länkar jag kan du testa något av följande: %s.',
+        $self->get( 'contact' ),
+        join( ', ', @commands_to_show )
     );
 }
 
 =head2 add_vac_watch
 
-Let a user post SteamIDs and I will watch those profile and
-notify the user if the player gets a ban!
+Let a user post SteamIDs and I will watch those profile and notify the user if
+the player gets a ban!
 
 =cut
 
@@ -545,7 +558,7 @@ sub add_vac_watch {
         my ( $player, $bans ) = $self->_get_steam_status( $id64 );
         next if !$player;
 
-        $players{ $message->{who} }->{ $id64 } = {
+        $players{ $message->{who} }->{$id64} = {
             username       => $player->{personaname},
             banned         => $bans->{VACBanned},
             days_since_ban => $bans->{DaysSinceLastBan},
@@ -557,12 +570,8 @@ sub add_vac_watch {
 
     $self->_update_vac_watch( \%players );
 
-    $self->tell(
-        $message->{channel}, sprintf(
-            'La till dessa spelare på watchlist: %s',
-            join( ', ', @usernames )
-        )
-    );
+    $self->tell( $message->{channel},
+        sprintf( 'La till dessa spelare på watchlist: %s', join( ', ', @usernames ) ) );
 
     return 1;
 }
@@ -579,8 +588,8 @@ sub check_vac_watch {
     my %to_notify   = ();
     my $player_bans = $self->_get_player_watch();
 
-    USER: foreach my $user ( keys %$player_bans ) {
-        PLAYER: foreach my $steam_id ( keys %{ $player_bans->{$user} } ) {
+  USER: foreach my $user ( keys %$player_bans ) {
+      PLAYER: foreach my $steam_id ( keys %{ $player_bans->{$user} } ) {
             my $watching = $player_bans->{$user}->{$steam_id};
 
             # Don't re-check banned players!
@@ -593,7 +602,7 @@ sub check_vac_watch {
 
             next PLAYER if !$bans->{VACBanned};
 
-            $watching->{banned} = 1;
+            $watching->{banned}         = 1;
             $watching->{days_since_ban} = $bans->{DaysSinceLastBan};
 
             push @{ $to_notify{$user} }, $watching;
@@ -618,11 +627,14 @@ Search Wikipedia for a given subject.
 sub wikipedia {
     my ( $self, $message, @args ) = @_;
 
-    my $language = $args[-1] =~ /^[a-z]{2}$/ ? pop @args : $self->get( 'wikipedia' )->{default_language};
-    my $subject  = join( '_', @args );
-    my $url      = sprintf( $self->get( 'wikipedia' )->{api_url}, $language, $subject );
-    my $ua       = Mojo::UserAgent->new();
-    my $result   = $ua->get( $url )->res->json;
+    my $language
+      = $args[-1] =~ /^[a-z]{2}$/
+      ? pop @args
+      : $self->get( 'wikipedia' )->{default_language};
+    my $subject = join( '_', @args );
+    my $url     = sprintf( $self->get( 'wikipedia' )->{api_url}, $language, $subject );
+    my $ua      = Mojo::UserAgent->new();
+    my $result  = $ua->get( $url )->res->json;
 
     my ( $extract, $title, $source, $disambiguous, @links );
     foreach my $id ( keys %{ $result->{query}->{pages} } ) {
@@ -646,16 +658,15 @@ sub wikipedia {
     }
 
     if ( $result->{query}->{redirects} ) {
-        $source =  $result->{query}->{redirects}->[0]->{from};
+        $source = $result->{query}->{redirects}->[0]->{from};
     }
 
     $self->tell(
         $message->{channel},
         sprintf( '%s %s %s',
             $extract,
-            $source       ? sprintf( '(Från artikeln "%s", omdirigerad från "%s")', $title, $source ) : '',
-            $disambiguous ? join( ', ', @links ) : ''
-        )
+            $source ? sprintf( '(Från artikeln "%s", omdirigerad från "%s")', $title, $source ) : '',
+            $disambiguous ? join( ', ', @links ) : '' )
     );
 
     return 1;
@@ -683,13 +694,13 @@ sub get_title {
     $title =~ s/^\s+|\s+$|\r|\n//g;
     return if !$title;
 
-    if ( $title =~ /(?:(.+) (?:(?!song).)*by (.+) on Spotify|(.+), a song by (.+) on Spotify)/ ){
+    if ( $title =~ /(?:(.+) (?:(?!song).)*by (.+) on Spotify|(.+), a song by (.+) on Spotify)/ ) {
         my $name   = $1 // $3;
         my $artist = $2 // $4;
 
-        my @url_parts      = split( /\//, $url );
+        my @url_parts = split( /\//, $url );
         my ( $type, $uri ) = ( $url_parts[-2], $url_parts[-1] );
-        my $copy_code      = sprintf( 'spotify:%s:%s', $type, $uri );
+        my $copy_code = sprintf( 'spotify:%s:%s', $type, $uri );
 
         $title = sprintf( '%s - %s | %s', $artist, $name, $copy_code );
     }
@@ -726,7 +737,7 @@ sub get_tweet {
     my ( $self, $message, %args ) = @_;
 
     my $twitter = Net::Twitter->new(
-        traits              => [ qw(API::RESTv1_1 OAuth API::TwitterVision InflateObjects) ],
+        traits              => [qw(API::RESTv1_1 OAuth API::TwitterVision InflateObjects)],
         consumer_key        => $self->get( 'twitter' )->{consumer_key},
         consumer_secret     => $self->get( 'twitter' )->{consumer_secret},
         access_token        => $self->get( 'twitter' )->{access_token},
@@ -739,14 +750,16 @@ sub get_tweet {
         $result = eval { $twitter->show_status( { id => $args{id} } ) };
     }
     elsif ( $args{user} ) {
-        $result = eval { $twitter->user_timeline( { screen_name => $args{user}, exclude_replies => 1 } )->[0] };
+        $result
+          = eval { $twitter->user_timeline( { screen_name => $args{user}, exclude_replies => 1 } )->[0]; };
     }
 
     return if !$result;
 
     my $tweet = $result->text =~ s/\n|\r//gr;
 
-    $self->tell( $message->{channel}, sprintf( '%s %s: %s', $result->user->screen_name, $result->relative_created_at, $tweet ) );
+    $self->tell( $message->{channel},
+        sprintf( '%s %s: %s', $result->user->screen_name, $result->relative_created_at, $tweet ) );
 
     return 1;
 }
@@ -762,9 +775,11 @@ sub get_imdb {
 
     my $func   = sprintf( '_imdb_%s', $self->get( 'imdb' )->{source} );
     my $result = $self->$func( $movie_id );
-    my $info   = sprintf('%s (%s). IMDb rating: %s', $result->{title}, $result->{year}, $result->{score});
 
     return if !$result;
+    return if !$result->{title};
+
+    my $info = sprintf( '%s (%s). IMDb rating: %s', $result->{title}, $result->{year}, $result->{score} );
 
     $self->tell( $message->{channel}, $info );
 
@@ -780,7 +795,8 @@ Get schedule for NiP CS:GO team
 sub ninjas_in_pyjamas {
     my ( $self, $message ) = @_;
 
-    my $url    = sprintf( $self->get( 'nip' )->{api_url}, $self->get( 'nip' )->{team_id}, $self->get( 'nip' )->{api_key} );
+    my $url = sprintf( $self->get( 'nip' )->{api_url}, $self->get( 'nip' )->{team_id},
+        $self->get( 'nip' )->{api_key} );
     my $ua     = Mojo::UserAgent->new();
     my $result = $ua->get( $url )->res->json;
 
@@ -794,16 +810,13 @@ sub ninjas_in_pyjamas {
         my $team_two_country = $game->{competitors}->[1]->{country};
         my $time             = $game->{scheduled};
 
-        my $datetime = strptime( '%Y-%m-%dT%H:%M:%S%z', $time );
+        my $datetime  = strptime( '%Y-%m-%dT%H:%M:%S%z', $time );
         my $scheduled = sprintf( '%s %s', $datetime->ymd, $datetime->hms );
 
-        push @schedule, sprintf(
-            '%s (%s) vs. %s (%s) - %s (%s) @ %s',
-            $team_one_name, $team_one_country,
-            $team_two_name, $team_two_country,
-            $tournament, $venue,
-            $scheduled
-        );
+        push @schedule,
+          sprintf( '%s (%s) vs. %s (%s) - %s (%s) @ %s',
+            $team_one_name, $team_one_country, $team_two_name, $team_two_country, $tournament, $venue,
+            $scheduled );
     }
 
     if ( !@schedule ) {
@@ -829,11 +842,12 @@ sub temperature {
 
     my $city        = join( ' ', @args );
     my $search_word = lc $city;
-    $search_word    =~ s/å|ä/a/g;
-    $search_word    =~ s/ö/o/g;
-    $search_word    =~ s/ü/u/g;
+    $search_word =~ s/å|ä/a/g;
+    $search_word =~ s/ö/o/g;
+    $search_word =~ s/ü/u/g;
 
-    my $url      = sprintf( $self->get( 'temperature' )->{api_url}, $search_word, $self->get( 'temperature' )->{api_key} );
+    my $url = sprintf( $self->get( 'temperature' )->{api_url}, $search_word,
+        $self->get( 'temperature' )->{api_key} );
     my $ua       = Mojo::UserAgent->new();
     my $result   = $ua->get( $url )->res->json;
     my $temp     = $result->{main}->{temp};
@@ -850,7 +864,8 @@ sub temperature {
         return;
     }
 
-    $self->tell( $message->{channel}, sprintf( '%.2f grader, %d%% luftfuktighet och %.1f m/s vind i %s', $temp, $humidity, $wind, $city ) );
+    $self->tell( $message->{channel},
+        sprintf( '%.2f grader, %d%% luftfuktighet och %.1f m/s vind i %s', $temp, $humidity, $wind, $city ) );
 
     return 1;
 }
@@ -864,10 +879,11 @@ Bible will print a random verse from the bible
 sub bible {
     my ( $self, $message ) = @_;
 
-    my $ua  = Mojo::UserAgent->new();
+    my $ua     = Mojo::UserAgent->new();
     my $result = $ua->get( $self->get( 'bible' )->{api_url} )->res->json->[0];
 
-    my $verse = sprintf( "%s %d:%d: %s", $result->{bookname}, $result->{chapter}, $result->{verse}, $result->{text} );
+    my $verse
+      = sprintf( "%s %d:%d: %s", $result->{bookname}, $result->{chapter}, $result->{verse}, $result->{text} );
 
     $self->tell( $message->{channel}, $verse );
 
@@ -885,7 +901,7 @@ sub image_recognition {
 
     return if !$self->get( 'clarifai' )->{enable};
 
-    my $ua = Mojo::UserAgent->new();
+    my $ua     = Mojo::UserAgent->new();
     my $result = $ua->post(
         $self->get( 'clarifai' )->{api_url},
         { Authorization => sprintf( 'Key %s', $self->get( 'clarifai' )->{api_key} ) },
@@ -903,15 +919,18 @@ sub image_recognition {
 
     return if !@keywords;
 
-    $self->tell( $message->{channel}, sprintf( 'Jag är helt jävla säker (a.k.a. killgissar) att detta finns i bilden: %s', join( ', ', @keywords ) ) );
+    $self->tell(
+        $message->{channel},
+        sprintf( 'Jag är helt jävla säker (a.k.a. killgissar) att detta finns i bilden: %s',
+            join( ', ', @keywords ) )
+    );
 
     return 1;
 }
 
 =head2 repost_check
 
-If someone posts a link, make sure it's not a repost!
-If it is, tell everyone!
+If someone posts a link, make sure it's not a repost! If it is, tell everyone!
 
 =cut
 
@@ -928,21 +947,26 @@ sub repost_check {
 
     return if !$self->get( 'repost' )->{enable};
 
-    if ( my $reposts = $links->{urls}->{ $url } ) {
-        my $repost       = $reposts->[0];
+    if ( my $reposts = $links->{urls}->{$url} ) {
+        my $repost = $reposts->[0];
 
         my $link_count   = scalar @$reposts;
         my $domain_count = $links->{domains}->{ $repost->{domain} };
         my $other_users  = { map { $_->{user} => 1 } @$reposts };
 
-        my $summary      = $self->get( 'repost' )->{summary} ? sprintf(
+        my $summary
+          = $self->get( 'repost' )->{summary}
+          ? sprintf(
             'Länken har postats %d gång(er) tidigare av följande användare: %s. Totalt %d länkar till %s',
-            $link_count, join( ', ', keys %$other_users ), $domain_count, $repost->{domain}
-        ) : '';
+            $link_count, join( ', ', keys %$other_users ),
+            $domain_count, $repost->{domain}
+          )
+          : '';
 
         $self->tell(
             $message->{channel},
-            sprintf( 'REPOST! %s postade den där länken för %s sedan. %s',
+            sprintf(
+                'REPOST! %s postade den där länken för %s sedan. %s',
                 $repost->{user}, $self->_relative_time( $repost->{time} ), $summary
             )
         );
