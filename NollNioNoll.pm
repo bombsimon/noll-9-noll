@@ -93,6 +93,25 @@ events.
 sub tick {
     my $self = shift;
 
+    # Check each time
+    my $current_reminders = $self->get( 'reminders' );
+    my @reminders_not_due = ();
+
+    while ( my $item = shift @$current_reminders ) {
+        if ( $item->{when} < DateTime->now( time_zone => 'local' )->set_time_zone( 'floating' )->epoch() ) {
+            $self->tell( $item->{where},
+                sprintf( "%s: I was supposed to remind you now about %s", $item->{who}, $item->{what} ),
+            );
+        }
+        else {
+            push @reminders_not_due, $item;
+        }
+    }
+
+    # Restore reminders not due yet.
+    $current_reminders->push( $_ ) for @reminders_not_due;
+
+    # Check at interval
     my $tick_interval  = 5;    # This method is called every 5 seconds
     my $ticks_passed   = $self->get( 'ticks' ) // 0;
     my $seconds_passed = $ticks_passed * $tick_interval;
@@ -975,6 +994,44 @@ sub repost_check {
     }
 
     return;
+}
+
+=head3 remind_me
+
+Remind a user after a given interval of something.
+
+=cut
+
+sub remind_me {
+    my ( $self, $message ) = @_;
+
+    my ( $interval, $unit, $what ) = $message->{body} =~ /^(?:\S+) (\d+) (\S+) (.+)$/;
+
+    return if !( $interval && $unit && $what );
+
+    my $dt = DateTime->now( time_zone => 'local' )->set_time_zone( 'floating' );
+    $dt->add( days    => $interval ) if $unit =~ /^days?|dag(ar)?$/i;
+    $dt->add( hours   => $interval ) if $unit =~ /^hours?|timmar|timme$/i;
+    $dt->add( minutes => $interval ) if $unit =~ /^minutes?|minut(er)?$/i;
+    $dt->add( seconds => $interval ) if $unit =~ /^seconds?|sekund(er)?$/i;
+
+    return if $dt == DateTime->now(); # Nothing added, bad unit?
+
+    my $current_reminders = $self->get( 'NollNioNoll', 'reminders' );
+
+    push @$current_reminders,
+      {
+        what  => $what,
+        when  => $dt->epoch(),
+        where => $message->{channel},
+        who   => $message->{who},
+      };
+
+    $self->set( 'reminders', $current_reminders );
+
+    $self->tell( $message->{channel}, sprintf( 'Wil remind you about %s at %s', $what, $dt->iso8601() ), );
+
+    return 1;
 }
 
 =head1 AUTHOR
