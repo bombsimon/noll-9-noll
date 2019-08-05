@@ -61,8 +61,12 @@ Setup the bot
 sub init {
     my $self = shift;
 
+    my @preserve_keys     = qw( reminders );
+    my %preserve_keys_map = map { $_ => 1 } @preserve_keys;
+    my @store_keys        = grep { not $preserve_keys_map{$_} } $self->store_keys;
+
     # Always reload full store
-    $self->unset( $_ ) for $self->store_keys;
+    $self->unset( $_ ) for @store_keys;
 
     $self->config( $self->_module_config );
 
@@ -100,7 +104,7 @@ sub tick {
     while ( my $item = shift @$current_reminders ) {
         if ( $item->{when} < DateTime->now( time_zone => 'local' )->set_time_zone( 'floating' )->epoch() ) {
             $self->tell( $item->{where},
-                sprintf( "%s: I was supposed to remind you now about %s", $item->{who}, $item->{what} ),
+                sprintf( "%s: I was supposed to remind you now - '%s'", $item->{who}, $item->{what} ),
             );
         }
         else {
@@ -135,7 +139,7 @@ sub tick {
 
     # 720 ticks == 1 hour (720 * 5 = 3600 )
     if ( $ticks_passed == 720 ) {
-        $self->set( 'ticks' ) = 0;
+        $self->set( 'ticks' => 1 );
     }
 
     # New day
