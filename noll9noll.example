@@ -3,12 +3,15 @@
 use warnings;
 use strict;
 
+use File::Basename;
+use lib dirname( __FILE__ ) . "/lib";
+
 use Bot::BasicBot::Pluggable;
 
 my $bot = Bot::BasicBot::Pluggable->new(
     server      => 'irc.network.server',
     port        => 6667,
-    channels    => [ '#channel' ],
+    channels    => ['#channel'],
     nick        => 'Noll9Noll',
     alt_nicks   => [ '090', 'NollNittio' ],
     username    => 'nooneok',
@@ -17,7 +20,7 @@ my $bot = Bot::BasicBot::Pluggable->new(
     charset     => 'UTF-8',
 );
 
-$bot->load('Loader');
-$bot->load('Auth');
+$bot->load( 'Loader' );
+$bot->load( 'Auth' );
 
 $bot->run();
