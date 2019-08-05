@@ -7,13 +7,15 @@ contact: Your name and/or email
 
 # Use alias for actions, i.e. !w London instead of !wikipedia London
 action_aliases:
+  ban: add_vac_watch
+  lt: latesttweet
+  nip: ninjas_in_pyjamas
+  remindme: remind_me
+  rm: remind_me
+  temp: temperature
+  vac: add_vac_watch
   w: wikipedia
   wiki: wikipedia
-  nip: ninjas_in_pyjamas
-  temp: temperature
-  lt: latesttweet
-  ban: add_vac_watch
-  vac: add_vac_watch
 
 # Enable or disable greet on chanjoin
 greeting:
