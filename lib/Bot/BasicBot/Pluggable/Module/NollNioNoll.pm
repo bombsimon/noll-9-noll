@@ -1033,7 +1033,7 @@ sub remind_me {
 
     $self->set( 'reminders', $current_reminders );
 
-    $self->tell( $message->{channel}, sprintf( 'Wil remind you about %s at %s', $what, $dt->iso8601() ), );
+    $self->tell( $message->{channel}, sprintf( 'Will remind you about %s at %s', $what, $dt->iso8601() ), );
 
     return 1;
 }
