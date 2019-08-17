@@ -85,6 +85,7 @@ twitter:
   consumer_secret: HIDDEN
   access_token: HIDDEN
   access_token_secret: HIDDEN
+  skip_media_tweets: false
 
 # IMDb information via http://www.omdbapi.com
 # Must become a Patreon to obtain key to the API

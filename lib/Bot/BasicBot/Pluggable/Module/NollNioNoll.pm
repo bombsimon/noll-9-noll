@@ -777,7 +777,12 @@ sub get_tweet {
           = eval { $twitter->user_timeline( { screen_name => $args{user}, exclude_replies => 1 } )->[0]; };
     }
 
+    # Return if no tweet found
     return if !$result;
+
+    # Return if media tweets should be skipped and the tweet contains media
+    # (e.g. images).
+    return if $result->entities->can( 'media' ) && $self->get( 'twitter' )->{skip_media_tweets};
 
     my $tweet = $result->text =~ s/\n|\r//gr;
 
