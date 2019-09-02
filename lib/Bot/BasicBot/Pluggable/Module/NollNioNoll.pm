@@ -704,6 +704,7 @@ Return the title for a web page
 sub get_title {
     my ( $self, $message, $url ) = @_;
 
+    # Only get specified URLs if defined.
     if ( $self->get( 'url_title' )->{limit} ) {
         my $allowed_urls = join( '|', @{ $self->get( 'url_title' )->{whitelist} } );
         my $allowed_re   = qr{https?://(\w+\.?)*\.?($allowed_urls)};
@@ -711,18 +712,29 @@ sub get_title {
         return if $url !~ $allowed_re;
     }
 
+    # Fetch the title and ensure there's an existing one.
     my $ua    = Mojo::UserAgent->new();
     my $title = $ua->max_redirects( 5 )->get( $url )->res->dom->at( 'title' )->text;
 
     $title =~ s/^\s+|\s+$|\r|\n//g;
+
     return if !$title;
 
-    my @cleanup_re = ( qr/ - YouTube$/, );
+    # Based on the (original) URL - store a prefix to use.
+    my $title_prefix = '';
+    my %coloring     = (
+        ' - YouTube'  => sprintf( "%s%s ",   "\x031,0You", "\x030,5Tube\x03" ),
+        'Spotify'     => sprintf( "%s ",     "\x030,3Spotify\x03" ),
+        'Aftonbladet' => sprintf( "%s%s%s ", "\x035,1-", "\x037,1Aftonbladet", "\x035,1-\x03" ),
+    );
 
-    foreach my $re ( @cleanup_re ) {
-        $title =~ s/$re//g;
+    while ( my ( $title_re, $prefix ) = each %coloring ) {
+        if ( $title =~ /$title_re/ ) {
+            $title_prefix = $prefix;
+        }
     }
 
+    # Special handling for Spotify where we can print it like {artist} - {title}
     my $re
       = $url =~ m|spotify\.com/album|
       ? qr/^(.+) by (.+) on Spotify/
@@ -738,6 +750,16 @@ sub get_title {
 
         $title = sprintf( '%s - %s | %s', $artist, $name, $copy_code );
     }
+
+    # Common cleanup for any URL.
+    my @cleanup_re = ( qr/ - YouTube$/, qr/ \| Aftonbladet/ );
+
+    foreach my $re ( @cleanup_re ) {
+        $title =~ s/$re//;
+    }
+
+    # Set the prefix when the title is cleaned.
+    $title = sprintf( "%s%s", $title_prefix, $title );
 
     $self->tell( $message->{channel}, $title );
 
