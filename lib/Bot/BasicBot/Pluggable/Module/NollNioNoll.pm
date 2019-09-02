@@ -717,12 +717,23 @@ sub get_title {
     $title =~ s/^\s+|\s+$|\r|\n//g;
     return if !$title;
 
-    if ( $title =~ /(?:(.+) (?:(?!song).)*by (.+) on Spotify|(.+), a song by (.+) on Spotify)/ ) {
-        my $name   = $1 // $3;
-        my $artist = $2 // $4;
+    my @cleanup_re = ( qr/ - YouTube$/, );
 
-        my @url_parts = split( /\//, $url );
-        my ( $type, $uri ) = ( $url_parts[-2], $url_parts[-1] );
+    foreach my $re ( @cleanup_re ) {
+        $title =~ s/$re//g;
+    }
+
+    my $re
+      = $url =~ m|spotify\.com/album|
+      ? qr/^(.+) by (.+) on Spotify/
+      : qr/^(.+), a song by (.+) on Spotify/;
+
+    if ( $title =~ /$re/ ) {
+        my $name   = $1;
+        my $artist = $2;
+
+        my $path = Mojo::URL->new()->parse( $url )->path;
+        my ( undef, $type, $uri ) = split( m|/|, $path );
         my $copy_code = sprintf( 'spotify:%s:%s', $type, $uri );
 
         $title = sprintf( '%s - %s | %s', $artist, $name, $copy_code );
