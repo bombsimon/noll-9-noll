@@ -11,8 +11,6 @@ L<Bot::BasicBot::Pluggable>
 
 =cut
 
-$Bot::BasicBot::Pluggable::Module::NollNioNoll::VERSION = '1.0';
-
 use warnings;
 use strict;
 use utf8;
@@ -24,6 +22,8 @@ use Net::Twitter;
 use YAML::XS;
 
 use base qw( Bot::BasicBot::Pluggable::Module );
+
+$Bot::BasicBot::Pluggable::Module::NollNioNoll::VERSION = '1.0';
 
 sub _module_config {
     my $self = shift;
@@ -817,10 +817,11 @@ sub get_tweet {
     # (e.g. images).
     return if $result->entities->can( 'media' ) && $self->get( 'twitter' )->{skip_media_tweets};
 
-    my $tweet = $result->text =~ s/\n|\r//gr;
+    my $tweet  = $result->text =~ s/\n|\r//gr;
+    my $prefix = sprintf( "%s ", "\x030,2🐦 Twitter\x03" );
 
     $self->tell( $message->{channel},
-        sprintf( '%s %s: %s', $result->user->screen_name, $result->relative_created_at, $tweet ) );
+        sprintf( '%s %s %s: %s', $prefix, $result->user->screen_name, $result->relative_created_at, $tweet ) );
 
     return 1;
 }
