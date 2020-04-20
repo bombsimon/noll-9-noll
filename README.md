@@ -24,6 +24,7 @@ see documentation for ```Bot::BasicBot::Pluggable::Module```
 
 ```text
 /msg Noll9Noll !auth admin julia
+/msg Noll9Noll !password julia <new-password>
 /msg Noll9Noll !load NollNioNoll
 
 # In the same channel as the bot, just use configured prefix
@@ -47,3 +48,9 @@ see documentation for ```Bot::BasicBot::Pluggable::Module```
 * Add Steam players to VAC watch and get PMed when they're being banned (`!vac
   <STEAM_0:X:XXXXXX>`)
 * Get temperature for your city (`!temp <location>`)
+
+## Dependencies
+
+* `libxml2`
+* `openssl-dev`
+* CPAN modules, install with `cpanm .` (or your preferred way)
