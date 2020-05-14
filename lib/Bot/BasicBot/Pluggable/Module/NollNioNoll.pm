@@ -113,7 +113,8 @@ sub tick {
     }
 
     # Restore reminders not due yet.
-    $current_reminders->push( $_ ) for @reminders_not_due;
+    push @$current_reminders, $_ for @reminders_not_due;
+    $self->set( 'reminders', $current_reminders );
 
     # Check at interval
     my $tick_interval  = 5;    # This method is called every 5 seconds
